@@ -136,7 +136,14 @@ function force($content, withError) {
 
         $content.find('a').each(function (index, elem) {
             var $elem = $(elem);
-            var aHref = getHref($elem.attr('href'));
+            // Keep internal link as is (for footnotes)
+            var aHref = $elem.attr('href');
+            if (aHref && aHref.indexOf('#') === 0) {
+                aHref = escapeXMLChars(aHref); // keep as is
+            }
+            else {
+                aHref = getHref(aHref);
+            }
             if (aHref === '') {
                 $elem.replaceWith('');
             } else {
@@ -231,9 +238,21 @@ function sanitize(rawContentString) {
                     var tmpAttrsTxt = '';
                     for (var i = 0; i < attrs.length; i++) {
                         if (attrs[i].name === 'href') {
-                            tmpAttrsTxt += ' href="' + getHref(attrs[i].value) + '"';
+                            var aHref = attrs[i].value;
+                            if (aHref && aHref.indexOf('#') === 0) {
+                                // keep as is
+                            }
+                            else {
+                                aHref = getHref(aHref);
+                            }
+                            tmpAttrsTxt += ' href="' + aHref + '"';
                         } else if (attrs[i].name === 'data-class') {
                             tmpAttrsTxt += ' class="' + attrs[i].value + '"';
+                        // some more extras for footnotes links
+                        } else if (attrs[i].name === 'name') {
+                            tmpAttrsTxt += ' name="' + attrs[i].value + '"';
+                        } else if (attrs[i].name === 'id') {
+                            tmpAttrsTxt += ' id="' + attrs[i].value + '"';
                         }
                     }
                     lastFragment = '<' + tag + tmpAttrsTxt + '>';
