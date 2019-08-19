@@ -144,6 +144,7 @@ function _buildEbook(allPages, fromMenu=false) {
         '<package xmlns="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/" unique-identifier="db-id" version="3.0">' +
         '<metadata>' +
         '<dc:title id="t1">'+ ebookName + '</dc:title>' +
+        '<dc:creator>Save as eBook</dc:creator>' +
         '<dc:identifier id="db-id">isbn</dc:identifier>' +
         '<meta property="dcterms:modified">' + new Date().toISOString().replace(/\.[0-9]+Z/i, 'Z') + '</meta>' +
         '<dc:language>en</dc:language>' +
