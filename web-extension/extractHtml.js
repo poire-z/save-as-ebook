@@ -177,7 +177,6 @@ function force($content, withError) {
 }
 
 function sanitize(rawContentString) {
-    allImages = [];
     extractedImages = [];
     var srcTxt = '';
     var dirty = null;
@@ -424,6 +423,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     let pageSrc = '';
     let tmpContent = '';
     let styleFile = null;
+
+    allImages = [];
 
     if (request.type === 'extract-page') {
         styleFile = extractCss(request.includeStyle, request.appliedStyles)
