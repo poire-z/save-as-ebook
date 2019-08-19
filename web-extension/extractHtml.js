@@ -105,8 +105,10 @@ function preProcess($htmlObject) {
     extractCanvasToImg($htmlObject);
     extractSvgToImg($htmlObject);
     $htmlObject.find('script, style, noscript, iframe').remove();
-    $htmlObject.find('*:empty').not('img').not('br').not('hr').remove();
-    formatPreCodeElements($htmlObject);
+    $htmlObject.find('*:empty').not('td').not('img').not('br').not('hr').remove();
+        //MM: added <td> important for tables...
+    // MM:  <pre> and <code> might be have fancy formatting (code snippets...)
+    // formatPreCodeElements($htmlObject);
 }
 
 function force($content, withError) {
