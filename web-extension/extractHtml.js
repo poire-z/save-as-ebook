@@ -198,7 +198,10 @@ function sanitize(rawContentString) {
 
         preProcess($wdirty);
 
-        if ($('*').length > maxNrOfElements) {
+        var nbelems = $('*').length;
+        console.log("sanitize nb elems:", nbelems);
+        if (nbelems > maxNrOfElements) {
+            console.log("sanitize: using alternate parser (force())");
             return force($wdirty, false);
         }
 
