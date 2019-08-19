@@ -35,6 +35,8 @@ function buildEbookFromChapters() {
 
 // FIXME remove  - keep one  function
 function buildEbook(allPages, fromMenu=false) {
+    // Called only when directly saving ("build-ebook")
+    ebookTitle = null; // Remove if previously set by buildEbookFromChapters()
     _buildEbook(allPages, fromMenu);
 }
 
