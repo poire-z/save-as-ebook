@@ -183,7 +183,8 @@ function executeCommand(command) {
 
 function dispatch(action, justAddToBuffer, appliedStyles) {
     if (!justAddToBuffer) {
-        _execRequest({type: 'remove'});
+        // Don't remove added chapters if we are saving some individual article in between
+        // _execRequest({type: 'remove'});
     }
     chrome.browserAction.setBadgeBackgroundColor({color:"red"});
     chrome.browserAction.setBadgeText({text: "Busy"});

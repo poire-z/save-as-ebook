@@ -155,7 +155,8 @@ document.getElementById("editChapters").onclick = function() {
 function dispatch(commandType, justAddToBuffer) {
     document.getElementById('busy').style.display = 'block';
     if (!justAddToBuffer) {
-        removeEbook();
+        // Don't remove added chapters if we are saving some individual article in between
+        // removeEbook();
     }
     chrome.runtime.sendMessage({
         type: commandType
