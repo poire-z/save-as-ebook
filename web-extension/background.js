@@ -150,6 +150,22 @@ display: none;
 
 ];
 
+
+var last_chapter_id = null;
+chrome.storage.local.get('last_chapter_id', function (data) {
+    if (!data || !data.last_chapter_id) {
+        last_chapter_id = 0;
+    }
+    else {
+        last_chapter_id = data.last_chapter_id;
+    }
+})
+function getChapterId() {
+    last_chapter_id++;
+    chrome.storage.local.set({'last_chapter_id': last_chapter_id});
+    return last_chapter_id;
+}
+
 chrome.commands.onCommand.addListener((command) => {
     executeCommand({type: command})
 });
@@ -268,6 +284,7 @@ function prepareStyles(tab, includeStyle, appliedStyles, callback) {
 
 function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles, callback) {
     chrome.tabs.sendMessage(tab[0].id, {
+        chapterId: justAddToBuffer ? getChapterId() : null,
         type: action,
         includeStyle: includeStyle,
         appliedStyles: appliedStyles

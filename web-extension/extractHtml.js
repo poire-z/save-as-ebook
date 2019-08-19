@@ -44,7 +44,7 @@ function getImageSrc(srcTxt) {
     if (fileExtension === '') {
         return '';
     }
-    var newImgFileName = 'img-' + (Math.floor(Math.random()*1000000*Math.random()*100000)) + '.' + fileExtension;
+    var newImgFileName = 'img' + getItemId(true) + '.' + fileExtension;
 
     var isB64Img = isBase64Img(srcTxt);
     if (isB64Img) {
@@ -304,7 +304,7 @@ function getContent(htmlContent) {
 /////
 
 function getPageUrl(url) {
-    return url.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'') + Math.floor(Math.random() * 10000) + '.xhtml';
+    return url.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'') + getItemId() + '.xhtml';
 }
 
 function getPageTitle(title) {
@@ -417,6 +417,24 @@ function deferredAddZip(url, filename) {
     return deferred;
 }
 
+var chapterId = null;
+var itemId = null;
+function getItemId(may_have_many) {
+    if (may_have_many) {
+        if (!itemId)
+            itemId = 0;
+        itemId++;
+        if (chapterId)
+            return chapterId + "-" + itemId;
+        else
+            return itemId.toString();
+    }
+    else if (chapterId)
+        return chapterId.toString();
+    else
+        return "";
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     let imgsPromises = [];
     let result = {};
@@ -425,6 +443,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     let styleFile = null;
 
     allImages = [];
+    chapterId = request.chapterId; // only provided when "add as chapter"
+    itemId = null;
 
     if (request.type === 'extract-page') {
         styleFile = extractCss(request.includeStyle, request.appliedStyles)
@@ -449,7 +469,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             title: tmpTitle,
             baseUrl: getCurrentUrl(),
             styleFileContent: styleFile,
-            styleFileName: 'style' + Math.floor(Math.random() * 100000) + '.css',
+            styleFileName: 'style' + getItemId() + '.css',
             images: extractedImages,
             content: tmpContent
         };
