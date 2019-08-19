@@ -218,7 +218,7 @@ function sanitize(rawContentString) {
                         // ignore imgs without source
                         lastFragment = ''
                     } else {
-                        lastFragment = tmpAttrsTxt.length === 0 ? '<img></img>' : '<img ' + tmpAttrsTxt + ' alt=""></img>';
+                        lastFragment = tmpAttrsTxt.length === 0 ? '<img></img>' : '<img' + tmpAttrsTxt + ' alt=""></img>';
                     }
                 } else if (tag === 'a') {
                     var tmpAttrsTxt = '';
@@ -229,7 +229,7 @@ function sanitize(rawContentString) {
                             tmpAttrsTxt += ' class="' + attrs[i].value + '"';
                         }
                     }
-                    lastFragment = tmpAttrsTxt.length === 0 ? '<a>' : '<a ' + tmpAttrsTxt + '>';
+                    lastFragment = '<' + tag + tmpAttrsTxt + '>';
                 } else if (tag === 'br' || tag === 'hr') {
                     var tmpAttrsTxt = '';
                     for (var i = 0; i < attrs.length; i++) {
@@ -237,7 +237,7 @@ function sanitize(rawContentString) {
                             tmpAttrsTxt += ' class="' + attrs[i].value + '"';
                         }
                     }
-                    lastFragment = '<' + tag + ' ' + tmpAttrsTxt + '></' + tag + '>';
+                    lastFragment = '<' + tag + tmpAttrsTxt + '></' + tag + '>';
                 } else if (tag === 'math') {
                     var tmpAttrsTxt = '';
                     tmpAttrsTxt += ' xmlns="http://www.w3.org/1998/Math/MathML"';
@@ -246,7 +246,7 @@ function sanitize(rawContentString) {
                             tmpAttrsTxt += ' alttext="' + attrs[i].value + '"';
                         }
                     }
-                    lastFragment = '<' + tag + ' ' + tmpAttrsTxt + '>';
+                    lastFragment = '<' + tag + tmpAttrsTxt + '>';
                 } else {
                     var tmpAttrsTxt = '';
                     for (var i = 0; i < attrs.length; i++) {
@@ -254,7 +254,7 @@ function sanitize(rawContentString) {
                             tmpAttrsTxt += ' class="' + attrs[i].value + '"';
                         }
                     }
-                    lastFragment = '<' + tag + ' ' + tmpAttrsTxt + '>';
+                    lastFragment = '<' + tag + tmpAttrsTxt + '>';
                 }
 
                 results += lastFragment;
@@ -265,7 +265,7 @@ function sanitize(rawContentString) {
                     return;
                 }
 
-                results += "</" + tag + ">\n";
+                results += "</" + tag + ">"; // Removed trailing '\n' to not mess with formatting )
             },
             chars: function(text) {
                 if (lastTag !== '' && allowedTags.indexOf(lastTag) < 0) {
