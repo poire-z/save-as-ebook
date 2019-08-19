@@ -17,18 +17,6 @@ var mathMLTags = [
     'mrow', 'ms', 'mspace', 'msqrt', 'mstyle', 'msub', 'msup', 'msubsup', 'mtable', 'mtd', 'mtext', 'mtr', 'munder', 'munderover', 'msgroup', 'mlongdiv', 'mscarries',
     'mscarry', 'mstack', 'semantics'
 ]
-var cssClassesToTmpIds = {};
-var tmpIdsToNewCss = {};
-// src: https://idpf.github.io/a11y-guidelines/content/style/reference.html
-var supportedCss = [
-    'background-color',
-    'border', 'border-top', 'border-right', 'border-bottom', 'border-left',
-    'color', 'font', 'font-size', 'font-weight', 'font-family',
-    'letter-spacing', 'line-height',
-    'list-style', 'outline',
-    'padding', 'quotes',
-    'text-decoration', 'text-transform', 'word-spacing',
-];
 //////
 
 function getImageSrc(srcTxt) {
@@ -188,7 +176,7 @@ function force($content, withError) {
 // Attributes to keep for tags others than: img, a, br, hr
 var extraAttrs = [ 'title', 'lang', 'span', 'name', 'id', 'colspan', 'rowspan', 'align', 'valign', 'clear' ];
 
-function sanitize(rawContentString) {
+function sanitize(rawContentString, divClassName) {
     extractedImages = [];
     var srcTxt = '';
     var dirty = null;
@@ -205,7 +193,11 @@ function sanitize(rawContentString) {
             return force($wdirty, false);
         }
 
-        dirty = '<div>' + $wdirty.html() + '</div>';
+        if (divClassName)
+            divClassName = ' data-class="'+divClassName+'"';
+        else
+            divClassName = '';
+        dirty = '<div' + divClassName + '>' + $wdirty.html() + '</div>';
 
         var results = '';
         var lastFragment = '';
@@ -325,12 +317,12 @@ function sanitize(rawContentString) {
 
 }
 
-function getContent(htmlContent) {
+function getContent(htmlContent, divClassName) {
     try {
         var tmp = document.createElement('div');
         tmp.appendChild(htmlContent.cloneNode(true));
         var dirty = '<div>' + tmp.innerHTML + '</div>';
-        return sanitize(dirty);
+        return sanitize(dirty, divClassName);
     } catch (e) {
         console.log('Error:', e);
         return '';
@@ -350,7 +342,7 @@ function getPageTitle(title) {
     return title;
 }
 
-function getSelectedNodes() {
+function getSelectedNodes() { // no more used
     // if (document.selection) {
         // return document.selection.createRange().parentElement();
         // return document.selection.createRange();
@@ -381,46 +373,355 @@ function jsonToCss(jsonObj) {
     return result;
 }
 
-function extractCss(includeStyle, appliedStyles) {
-    if (includeStyle) {
-        $('body').find('*').each((i, pre) => {
-            let $pre = $(pre);
+// src: https://idpf.github.io/a11y-guidelines/content/style/reference.html
+var unsupportedCss = [
+    // more bothering than useful:
+    'letter-spacing', 'word-spacing',
+    'orphans', 'widows', 'text-align-last', 'hyphens',
+    'page-break-before', 'page-break-after', 'page-break-inside',
+    'outline', 'quotes', 'list-style-image',
+    'background', 'background-image', 'background-repeat', 'background-attachment', 'background-position',
 
-            if (allowedTags.indexOf(pre.tagName.toLowerCase()) < 0) return;
-            if (mathMLTags.indexOf(pre.tagName.toLowerCase()) > -1) return;
+];
+var supportedCss = [
+    // Parsed
+    'font-size',
+    'font-style',
+    'font-weight',
+    'font-family',
+    'line-height', // bothering
+    'text-indent',
+    'text-align',
+    'text-decoration', 'text-transform',
+    'vertical-align',
+    'color', // bothering on eInk
+    'background-color', // bothering on eInk
+    'display',
+    'white-space',
+    'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+    'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+    'list-style-type', 'list-style-position',
+    'float', 'clear',
+    'width', 'height', // for floats
+    'border-collapse', 'border-spacing',
+    // Managed specifically, will end up aggregated:
+    'border-top-style', 'border-top-width', 'border-top-color',
+    'border-bottom-style', 'border-bottom-width', 'border-bottom-color',
+    'border-left-style', 'border-left-width', 'border-left-color',
+    'border-right-style', 'border-right-width', 'border-right-color',
+    // Outputed when aggregated
+    'border-top', 'border-right', 'border-bottom', 'border-left'
+]
+var inheritedCss = [
+    'font-size',
+    'font-style',
+    'font-weight',
+    'font-family',
+    'line-height',
+    'text-indent',
+    'text-align',
+    'text-decoration', 'text-transform',
+    'color',
+    'white-space',
+    'list-style-type', 'list-style-position'
+]
+var nonInheritedCss = [
+    'vertical-align',
+    'background-color',
+    'display',
+    'float', 'clear',
+    'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+    'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+    'border-collapse', 'border-spacing',
+]
 
-            if (!$pre.is(':visible')) {
-                $pre.replaceWith('');
-            } else {
-                if (pre.tagName.toLowerCase() === 'svg') return;
+function rgb2hex(rgb, fallback) {
+    if (!rgb)
+        return fallback;
+    if ( rgb.search("rgb") == -1 ) {
+        return rgb;
+    }
+    else if ( rgb == 'rgba(0, 0, 0, 0)' ) {
+        return 'transparent';
+    }
+    var parsed = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/);
+    if (!parsed)
+        return fallback;
+    return "#" + ("0" + parseInt(parsed[1]).toString(16)).slice(-2)
+               + ("0" + parseInt(parsed[2]).toString(16)).slice(-2)
+               + ("0" + parseInt(parsed[3]).toString(16)).slice(-2);
+}
 
-                let classNames = pre.getAttribute('class');
-                if (!classNames) {
-                    classNames = pre.getAttribute('id');
-                    if (!classNames) {
-                        classNames = pre.tagName + '-' + Math.floor(Math.random()*100000);
-                    }
-                }
-                let tmpName = cssClassesToTmpIds[classNames];
-                let tmpNewCss = tmpIdsToNewCss[tmpName];
-                if (!tmpName) {
-                    tmpName = 'class-' + Math.floor(Math.random()*100000);
-                    cssClassesToTmpIds[classNames] = tmpName;
-                }
-                if (!tmpNewCss) {
-                    // var style = window.getComputedStyle(pre);
-                    tmpNewCss = {};
-                    for (let cssTagName of supportedCss) {
-                        let cssValue = $pre.css(cssTagName);
-                        if (cssValue && cssValue.length > 0) {
-                            tmpNewCss[cssTagName] = cssValue;
-                        }
-                    }
-                    tmpIdsToNewCss[tmpName] = tmpNewCss;
-                }
-                pre.setAttribute('data-class', tmpName);
+var ref_rem_px = 0;
+function pxToEm(v, pv) {
+    var flt = parseFloat(v);
+    var pflt = parseFloat(pv);
+    if ( ref_rem_px == 0 ) {
+        if (isFinite(pflt))
+            ref_rem_px = pflt;
+        else if (isFinite(flt))
+            ref_rem_px = flt;
+    }
+    if (!isFinite(flt))
+        return "0";
+    if (isFinite(pflt) && pflt != 0) {
+        var em = flt / pflt;
+        return Number(Math.round(em+'e3')+'e-3') + "em";
+        // cleaner than: return em.toFixed(3) + "em";
+    }
+    if ( ref_rem_px > 0) {
+        var rem = flt / ref_rem_px;
+        return Number(Math.round(rem+'e3')+'e-3') + "rem";
+    }
+}
+
+function getNodeStyle(pre, onlyInherited) {
+    // We only get computed values (so, sizes in px) with css()
+    // (Calling css() is the most expensive operation in the process.)
+    var newcs = {};
+    var ncs = $(pre).css(supportedCss);
+    var pcs = {}
+    var pfontsize = null;
+    if (pre.parentNode && $(pre.parentNode).data("style_fetched") == true) {
+        // Parent node has been included and had its style checked by us.
+        // We can inherit from it
+        pcs = $(pre.parentNode).css(inheritedCss); // only the inherited ones
+        if ( pcs["font-size"] )
+            pfontsize = pcs["font-size"];
+    }
+    $(pre).data("style_fetched", true);
+    for (let prop of inheritedCss) {
+        var v = ncs[prop];
+        if ( v && v.startsWith("-moz-") ) // text-align: -moz-right (?)
+            v = v.substring(5);
+        var pv = pcs[prop];
+        if ( pv && pv.startsWith("-moz-") )
+            pv = pv.substring(5);
+        if ( v && v != pv ) { // defined and different value from parent
+            if ( prop == 'font-size' || prop == 'text-indent' ) { // sized properties
+                v = pxToEm(v, pfontsize);
+                if (v) // Don't ignore "0", as it resets inherited non-0 value
+                    newcs[prop] = v;
             }
+            if ( prop == 'line-height' ) { // sized properties
+                // Should be scaled against current node font size, if we set it to 'em'
+                var fontsize = ncs["font-size"];
+                v = pxToEm(v, fontsize);
+                if (v)
+                    newcs[prop] = v;
+            }
+            else if ( prop == 'font-weight' ) { // special named properties
+                if ( parseInt(v) > 500 )
+                    newcs[prop] = "bold";
+                else
+                    newcs[prop] = "normal";
+            }
+            else if ( prop == 'font-family' ) {
+                if ( v.includes("monospace") || v.includes("Mono") )
+                    newcs[prop] = "monospace";
+                else
+                    newcs[prop] = "serif";
+            }
+            else if ( prop == 'color' ) {
+                v = rgb2hex(v);
+                newcs[prop] = v;
+            }
+            else { // others are named properties
+                newcs[prop] = v; // use as-is
+            }
+        }
+    }
+    if (onlyInherited) {
+        return newcs;
+    }
+    for (let prop of nonInheritedCss) {
+        var v = ncs[prop];
+        if ( v && v.startsWith("-moz-") ) // text-align: -moz-right (?)
+            v = v.substring(5);
+        else if ( v && v.startsWith("-webkit-") )
+            v = v.substring(8);
+        if ( v ) {
+            if ( prop.startsWith('margin-') || prop.startsWith('padding-') ) { // sized properties
+                if ( v != "0px" ) { // ignore 0
+                    v = pxToEm(v, pfontsize);
+                    if (v && v != "0") // ignore "0"
+                        newcs[prop] = v;
+                }
+            }
+            else if ( prop == 'border-spacing' ) { // double sized property
+                if ( v != "0px 0px" ) { // ignore 0
+                    newcs[prop] = v; // use computed value in px for now
+                }
+            }
+            else if ( prop == 'vertical-align' ) { // sized or named properties
+                var asnum = parseFloat(v);
+                if (isFinite(asnum)) {
+                    v = pxToEm(v, pfontsize);
+                    if (v)
+                        newcs[prop] = v;
+                }
+                else { // named property
+                    if ( v != "baseline" ) // default value
+                        newcs[prop] = v;
+                }
+            }
+            else if ( prop == 'border-collapse' ) {
+                if ( v != 'separate' ) { // default value
+                    newcs[prop] = v;
+                }
+            }
+            else if ( prop == 'float' ) {
+                if ( v != 'none' ) {
+                    newcs[prop] = v;
+                    newcs["width"] = ncs["width"]; // keep computed width in px
+                }
+            }
+            else if ( prop == 'clear' ) {
+                if ( v != 'none' ) {
+                    newcs[prop] = v;
+                    newcs["width"] = ncs["width"]; // keep computed width in px
+                }
+            }
+            else if ( prop == 'display' ) {
+                if ( v != 'block' && v!= 'inline' ) { // otherwise assume display from tag name
+                    newcs[prop] = v;
+                }
+            }
+            else if ( prop == 'background-color' ) {
+                v = rgb2hex(v);
+                if ( v != 'transparent' )
+                    newcs[prop] = v;
+            }
+            else { // others (if any) are named properties
+                newcs[prop] = v; // use as-is
+            }
+        }
+    }
+    // Aggregated border properties: keep computed value in px
+    var v;
+    v = ncs['border-top-width'];
+    if ( v && v != '0px' )
+        newcs['border-top'] = v + " " + ncs['border-top-style'] + " " + rgb2hex(ncs['border-top-color'], 'black');
+    v = ncs['border-bottom-width'];
+    if ( v && v != '0px' )
+        newcs['border-bottom'] = v + " " + ncs['border-bottom-style'] + " " + rgb2hex(ncs['border-bottom-color'], 'black');
+    v = ncs['border-left-width'];
+    if ( v && v != '0px' )
+        newcs['border-left'] = v + " " + ncs['border-left-style'] + " " + rgb2hex(ncs['border-left-color'], 'black');
+    v = ncs['border-top-width'];
+    if ( v && v != '0px' )
+        newcs['border-right'] = v + " " + ncs['border-right-style'] + " " + rgb2hex(ncs['border-right-color'], 'black');
+
+    return newcs;
+}
+
+// MM: ugly approach - maybe using hash later...
+function styleToString(styleArr) {
+    var tmp = "";
+    for (var key in styleArr) {
+        tmp += key + ':' +styleArr[key] + ';';
+    }
+    //console.log ("MM: debug: styleToString(): "  + tmp);
+    return tmp;
+}
+
+function extractCss(topNode, selection, includeStyle, appliedStyles) {
+    // console.log(Date.now(), "extractCss() started\n");
+    var cssClassesToTmpIds = {};
+    var tmpIdsToNewCss = {};
+    var styleLookup = {};
+    if (includeStyle) {
+        var bodycs = $('body').css(supportedCss);
+        pxToEm( bodycs["font-size"] ); // just to set ref_rem_px
+
+        var ranges = [];
+        if (topNode) {
+            ranges.push([topNode, null, "body"]);
+        }
+        else if (selection) {
+            for (var i = 0; i < selection.rangeCount; i++) {
+                ranges.push([ selection.getRangeAt(i).commonAncestorContainer, selection.getRangeAt(i), i+1 ]);
+            }
+        }
+        ranges.forEach((sel) => {
+            let topNode = sel[0];
+            let range = sel[1];
+            let selectionNum = sel[2];
+
+            // Add style for topNode (commonAncestorContainer) just in case
+            // we got no wrapping div
+            var refNode = topNode;
+            if (refNode.nodeType === 3) // text node
+                refNode = refNode.parentNode;
+            var cls = "selection-" + selectionNum;
+            var css = getNodeStyle(refNode, true); // don't get non-inheritable properties
+            var styleString = styleToString(css);
+            cssClassesToTmpIds[cls] = cls;
+            tmpIdsToNewCss[cls] = css;
+            styleLookup[ styleString ] = cls;
+
+            $(topNode).find('*').each((i, pre) => {
+                let $pre = $(pre);
+                // Skip nodes that are not part of our selection (to avoid
+                // useless but expensive css() calls on them).
+                if ( range && !(range.intersectsNode(pre)) ) {
+                    return;
+                }
+
+                if (allowedTags.indexOf(pre.tagName.toLowerCase()) < 0) return;
+                if (mathMLTags.indexOf(pre.tagName.toLowerCase()) > -1) return;
+
+                if (!$pre.is(':visible')) {
+                    $pre.replaceWith('');
+                } else {
+                    if (pre.tagName.toLowerCase() === 'svg') return;
+
+                    // Find a friendly and not too remote name for the class we'll create
+                    let classNames = pre.getAttribute('class');
+                    if (!classNames) {
+                        classNames = pre.getAttribute('id');
+                    }
+                    if (classNames) {
+                        classNames = classNames.replace(/\s/g,'_'); // MM: merge multiple classNames or bad IDs
+                        // MM: materialize class per tag
+                        classNames = pre.tagName.toLowerCase() + '-' + classNames;
+                    }
+                    else {
+                        // MM: use the path as ul.li and ol.li need different list-style-type for example.
+                        classNames =  pre.parentNode.tagName.toLowerCase() + '_' + pre.tagName.toLowerCase();
+                    }
+
+                    var tmpNewCss = getNodeStyle(pre);
+                    var styleString = styleToString(tmpNewCss);
+                    // We ignore empty styles and don't set any class name on nodes with no style
+                    if ( styleString != "" ) {
+                        var tmpId = styleLookup[styleString];
+                        if ( tmpId === undefined ) { // not yet seen
+                            var cls = classNames;
+                            var num = 1;
+                            while (true) {
+                                tmpId = cssClassesToTmpIds[cls];
+                                if (tmpId === undefined ) { // cls available
+                                   tmpId = cls;
+                                   cssClassesToTmpIds[cls] = tmpId;
+                                   tmpIdsToNewCss[tmpId] = tmpNewCss;
+                                   styleLookup[ styleString ] = tmpId;
+                                   break;
+                                }
+                                num++;
+                                cls = classNames + '_' + num;
+                            }
+                        }
+                        pre.setAttribute('data-class', tmpId);
+                    }
+                }
+            });
+            // cleanup any .data("style_fetched") in case we'll work again on this page
+            $(topNode).find('*').removeData("style_fetched");
+            $(topNode.parentNode).removeData("style_fetched");
+            $(topNode.parentNode.parentNode).removeData("style_fetched");
         });
+        // console.log(Date.now(), "extractCss() done.\n");
         return jsonToCss(tmpIdsToNewCss);
     } else {
         let mergedCss = '';
@@ -484,15 +785,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     itemId = null;
 
     if (request.type === 'extract-page') {
-        styleFile = extractCss(request.includeStyle, request.appliedStyles)
         pageSrc = document.getElementsByTagName('body')[0];
-        tmpContent = getContent(pageSrc);
+        styleFile = extractCss(pageSrc, null, request.includeStyle, request.appliedStyles)
+        tmpContent = getContent(pageSrc, "selection-body");
     } else if (request.type === 'extract-selection') {
-        styleFile = extractCss(request.includeStyle, request.appliedStyles)
-        pageSrc = getSelectedNodes();
-        pageSrc.forEach((page) => {
-            tmpContent += getContent(page);
-        });
+        // We may have multiple selections
+        var selections = window.getSelection();
+        styleFile = extractCss(null, selections, request.includeStyle, request.appliedStyles)
+        for (var i = 0; i < selections.rangeCount; i++) {
+            var divClassName = "selection-" + (i+1);
+            tmpContent += getContent(selections.getRangeAt(i).cloneContents(), divClassName);
+        }
     }
 
     allImages.forEach((tmpImg) => {
