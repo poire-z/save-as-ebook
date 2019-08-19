@@ -178,6 +178,9 @@ function force($content, withError) {
     }
 }
 
+// Attributes to keep for tags others than: img, a, br, hr
+var extraAttrs = [ 'title', 'lang', 'span', 'name', 'id', 'colspan', 'rowspan', 'align', 'valign', 'clear' ];
+
 function sanitize(rawContentString) {
     extractedImages = [];
     var srcTxt = '';
@@ -214,6 +217,8 @@ function sanitize(rawContentString) {
                             tmpAttrsTxt += ' src="' + tmpSrc + '"';
                         } else if (attrs[i].name === 'data-class') {
                             tmpAttrsTxt += ' class="' + attrs[i].value + '"';
+                        } else if (attrs[i].name === 'align') {
+                            tmpAttrsTxt += ' align="' + attrs[i].value + '"';
                         }
                     }
                     if (tmpSrc === '') {
@@ -237,6 +242,8 @@ function sanitize(rawContentString) {
                     for (var i = 0; i < attrs.length; i++) {
                         if (attrs[i].name === 'data-class') {
                             tmpAttrsTxt += ' class="' + attrs[i].value + '"';
+                        } else if (attrs[i].name === 'clear') {
+                            tmpAttrsTxt += ' clear="' + attrs[i].value + '"';
                         }
                     }
                     lastFragment = '<' + tag + tmpAttrsTxt + '></' + tag + '>';
@@ -254,6 +261,11 @@ function sanitize(rawContentString) {
                     for (var i = 0; i < attrs.length; i++) {
                         if (attrs[i].name === 'data-class') {
                             tmpAttrsTxt += ' class="' + attrs[i].value + '"';
+                        }
+                    }
+                    for (var i = 0; i < attrs.length; i++) {
+                        if (extraAttrs.indexOf( attrs[i].name ) != -1 ) {
+                          tmpAttrsTxt += ' '+attrs[i].name+'="' + attrs[i].value + '"'  ;
                         }
                     }
                     lastFragment = '<' + tag + tmpAttrsTxt + '>';
