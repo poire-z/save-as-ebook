@@ -302,6 +302,7 @@ function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles, 
                 }
                 data.allPages.push(response);
                 chrome.storage.local.set({'allPages': data.allPages});
+                chapterCount = data.allPages.length;
                 resetBusy()
                 chrome.tabs.sendMessage(tab[0].id, {'alert': 'Page or selection added as chapter!'}, (r) => {});
             })
@@ -309,9 +310,33 @@ function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles, 
     });
 }
 
+// From https://github.com/alexadam/save-as-ebook/pull/19
+// browserAction badge to show number of added chapters
+var chapterCount = 0;
+function updateBadge() {
+    chrome.browserAction.setBadgeBackgroundColor({color: [15,127,95,255]});
+    if(chapterCount === 0) {
+        chrome.browserAction.setBadgeText({text: ""});
+    }
+    else {
+        chrome.browserAction.setBadgeText({text: chapterCount.toString()});
+    }
+}
+chrome.storage.local.get('allPages', function (data) {
+    if (!data || !data.allPages) {
+        chapterCount = 0;
+    }
+    else {
+        chapterCount = data.allPages.length;
+    }
+    updateBadge();
+});
+// end
+
 function resetBusy() {
     isBusy = false;
     chrome.browserAction.setBadgeText({text: ""});
+    updateBadge();
 
     let popups = chrome.extension.getViews({type: "popup"});
     if (popups && popups.length > 0) {
@@ -332,10 +357,14 @@ function _execRequest(request, sender, sendResponse) {
     }
     if (request.type === 'set') {
         chrome.storage.local.set({'allPages': request.pages});
+        chapterCount = request.pages.length;
+        updateBadge();
     }
     if (request.type === 'remove') {
         chrome.storage.local.remove('allPages');
         chrome.storage.local.remove('title');
+        chapterCount = 0;
+        updateBadge();
     }
     if (request.type === 'get title') {
         chrome.storage.local.get('title', function (data) {
