@@ -321,8 +321,17 @@ function generateRandomTag(tagLen) {
 }
 
 function removeSpecialChars(text) {
-    // FIXME remove white spaces ?
-    return text.replace(/\//g, '-')
+    // Not accepted on Windows: " * / : < > ? \ |
+    text = text.replace(/"/g, '');
+    text = text.replace(/\*/g, '-');
+    text = text.replace(/\//g, '-');
+    text = text.replace(/:/g, '-');
+    text = text.replace(/</g, '');
+    text = text.replace(/>/g, '');
+    text = text.replace(/\?/g, '');
+    text = text.replace(/\\/g, '');
+    text = text.replace(/\|/g, '-');
+    return text;
 }
 
 function escapeXMLChars(text) {
