@@ -335,11 +335,12 @@ function jsonToCss(jsonObj) {
     for (var i = 0; i < keys.length; i++) {
         var tmpJsonObj = jsonObj[keys[i]];
         var tmpKeys = Object.keys(tmpJsonObj);
-        result += '.' + keys[i] + ' {';
+        // if (tmpKeys.length == 0) continue; // not needed, we're never called when empty styles
+        result += '.' + keys[i] + ' { ';
         for (var j = 0; j < tmpKeys.length; j++) {
-            result += tmpKeys[j] + ':' + tmpJsonObj[tmpKeys[j]] + ';';
+            result += tmpKeys[j] + ': ' + tmpJsonObj[tmpKeys[j]] + '; ';
         }
-        result += '} ';
+        result += '}\n';
     }
     return result;
 }
