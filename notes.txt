@@ -1,0 +1,12 @@
+
+https://github.com/alexadam/save-as-ebook
+https://github.com/miguelitoelgrande/save-as-ebook/commits/master
+
+To install:
+cd web-extension
+zip -r ~/my-save-as-ebook.xpi *
+
+Firefox > Add-ons > Gear > Install Add-on from file
+
+https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Distribution_options/Sideloading_add-ons
+https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Your_first_WebExtension
