@@ -3,8 +3,8 @@ var extractedImages = [];
 var maxNrOfElements = 20000;
 var allowedTags = [
     'address', 'article', 'aside', 'footer', 'header', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'hgroup', 'nav', 'section', 'dd', 'div', 'dl', 'dt', 'figcaption', 'figure', 'hr', 'li',
-    'main', 'ol', 'p', 'pre', 'ul', 'a', 'abbr', 'b', 'bdi', 'bdo', 'br', 'cite', 'code', 'data',
+    'hgroup', 'nav', 'section', 'dd', 'div', 'dl', 'dt', 'figcaption', 'figure', 'font', 'hr', 'li',
+    'main', 'ol', 'p', 'pre', 'ul', 'a', 'abbr', 'b', 'bdi', 'bdo', 'br', 'center', 'cite', 'code', 'data',
     'dfn', 'em', 'i', 'img', 'kbd', 'mark', 'q', 'rp', 'rt', 'rtc', 'ruby', 's', 'samp', 'small', 'span',
     'strong', 'sub', 'sup', 'time', 'tt', 'u', 'var', 'wbr', 'del', 'ins', 'caption', 'col', 'colgroup',
     'table', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr',
